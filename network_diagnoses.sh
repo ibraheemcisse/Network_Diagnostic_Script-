@@ -67,6 +67,22 @@ check_port() {
         return 1
     fi
 }
+# TCP state summary
+check_tcp_states() {
+    echo "TCP Connection States:"
+    
+    # Get all states (skip header), count each type
+    local output=$(ss -tan | awk 'NR>1 {print $1}' | sort | uniq -c | sort -rn)
+    
+    # Display formatted
+    if [[ -n "$output" ]]; then
+        echo "$output" | while read count state; do
+            printf "  %-15s %s\n" "$state:" "$count"
+        done
+    else
+        echo "  No TCP connections found"
+    fi
+}
 
 # Main diagnostic runner
 main() {
@@ -83,6 +99,9 @@ main() {
     check_port localhost 5432 "PostgreSQL"
     check_port localhost 5000 "Flask"
     check_port localhost 80 "nginx"
+    echo ""
+    
+    check_tcp_states    # NEW!
     echo ""
     
     echo "=== Complete ==="
