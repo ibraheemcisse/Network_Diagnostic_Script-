@@ -34,7 +34,23 @@ check_dns() {
         return 1
     fi
 }
-
+check_listening_ports() {
+    echo "Listening Ports:"
+    
+    # Get listening TCP ports with process info
+    ss -tlnp 2>/dev/null | awk 'NR>1' | while read -r proto recvq sendq local remote state process; do
+        # Extract process name from the process field
+        # Format: users:(("nginx",pid=1234,fd=6))
+        if [[ "$process" =~ \"([^\"]+)\" ]]; then
+            proc_name="${BASH_REMATCH[1]}"
+            printf "  TCP %-20s → %s\n" "$local" "$proc_name"
+        else
+            printf "  TCP %-20s\n" "$local"
+        fi
+    done
+    
+    echo "  (Note: Run with 'sudo' for complete process details)"
+}
 # Port availability check
 check_port() {
     local host=$1
@@ -134,6 +150,7 @@ check_routes() {
 }
 
 # Main diagnostic runner
+# Main diagnostic runner
 main() {
     echo "=== Network Diagnostics ==="
     echo ""
@@ -148,7 +165,7 @@ main() {
     check_interfaces
     echo ""
     
-    check_routes          # ← ADD THIS LINE!
+    check_routes
     echo ""
     
     check_port localhost 5432 "PostgreSQL"
@@ -157,6 +174,9 @@ main() {
     echo ""
     
     check_tcp_states
+    echo ""
+    
+    check_listening_ports
     echo ""
     
     echo "=== Complete ==="
