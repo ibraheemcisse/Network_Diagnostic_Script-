@@ -1,0 +1,16 @@
+# Vim swap files
+*.swp
+*.swo
+*~
+
+# Backup files
+*.bak
+*.backup
+
+# Test output
+test_results.txt
+*.log
+
+# Temporary files
+tmp/
+temp/
