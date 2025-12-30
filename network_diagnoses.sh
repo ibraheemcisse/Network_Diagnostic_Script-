@@ -105,6 +105,33 @@ check_interfaces() {
     done
 }
 
+check_routes() {
+    echo "Routing Table:"
+
+    # Loop through each route entry
+    while read -r line; do
+        # Extract default gateway
+        if [[ "$line" =~ ^default ]]; then
+            # default via 192.168.1.1 dev wlp2s0 ...
+            gw=$(echo "$line" | awk '{for(i=1;i<=NF;i++){if($i=="via"){print $(i+1); break}}}')
+            dev=$(echo "$line" | awk '{for(i=1;i<=NF;i++){if($i=="dev"){print $(i+1); break}}}')
+            echo "  Default gateway: $gw via $dev"
+
+        # Local networks (prefix /XX)
+        elif [[ "$line" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+ ]]; then
+            # get network
+            network=$(echo "$line" | awk '{print $1}')
+            dev=$(echo "$line" | awk '{for(i=1;i<=NF;i++){if($i=="dev"){print $(i+1); break}}}')
+            # Check if link down
+            link_status=$(echo "$line" | grep -q "linkdown" && echo " (link down)" || echo "")
+            echo "  Local network: $network dev $dev$link_status"
+
+        else
+            # any other route
+            echo "  Route: $line"
+        fi
+    done < <(ip route show)
+}
 
 # Main diagnostic runner
 main() {
@@ -118,7 +145,10 @@ main() {
     check_dns github.com
     echo ""
     
-    check_interfaces     # NEW! Add here
+    check_interfaces
+    echo ""
+    
+    check_routes          # ← ADD THIS LINE!
     echo ""
     
     check_port localhost 5432 "PostgreSQL"
