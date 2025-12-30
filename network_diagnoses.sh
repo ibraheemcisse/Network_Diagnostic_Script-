@@ -84,6 +84,28 @@ check_tcp_states() {
     fi
 }
 
+check_interfaces() {
+    echo "Network Interfaces:"
+
+    # Use brief mode for easier parsing
+    # Format: iface STATE ADDR...
+    ip -br addr show | while read -r iface state rest; do
+        # Extract first IPv4 address (skip /24 suffix)
+        ip_addr=$(echo "$rest" | awk '{for(i=1;i<=NF;i++){if($i ~ /^[0-9]+\./){print $i; exit}}}')
+
+        if [[ "$state" == "UP" ]]; then
+            if [[ -n "$ip_addr" ]]; then
+                printf "  %-10s UP (%s)\n" "$iface:" "$ip_addr"
+            else
+                printf "  %-10s UP (no IP)\n" "$iface:"
+            fi
+        else
+            printf "  %-10s DOWN\n" "$iface:"
+        fi
+    done
+}
+
+
 # Main diagnostic runner
 main() {
     echo "=== Network Diagnostics ==="
@@ -96,12 +118,15 @@ main() {
     check_dns github.com
     echo ""
     
+    check_interfaces     # NEW! Add here
+    echo ""
+    
     check_port localhost 5432 "PostgreSQL"
     check_port localhost 5000 "Flask"
     check_port localhost 80 "nginx"
     echo ""
     
-    check_tcp_states    # NEW!
+    check_tcp_states
     echo ""
     
     echo "=== Complete ==="
