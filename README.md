@@ -176,9 +176,7 @@ This script was built as part of a networking fundamentals deep-dive, drawing fr
 
 Tested on:
 - ✅ Ubuntu 24.04 LTS
-- ✅ Debian 12
-- ✅ Fedora 39
-
+  
 ### Future Enhancements
 
 Potential additions for v2.0:
