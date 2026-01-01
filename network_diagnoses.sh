@@ -2,15 +2,18 @@
 
 # =============================================
 # Network Diagnostic Script
-# Author: Ibrahim
-# Purpose: SRE network health checks
 # =============================================
 
 # ICMP connectivity check
 check_connectivity() {
     local host=$1
 
+#check if host is reachable via ping
+
     if ping -c 3 -W 2 "$host" >/dev/null 2>&1; then
+
+#ping 3 times with a wait of 2 seconds and suppress output
+
         echo "✓ $host is reachable (ICMP)"
         return 0
     else
@@ -24,8 +27,11 @@ check_dns() {
     local domain=$1
     local result
 
+#use dig to resolve domain and get only the first A record
+
     result=$(dig +short A "$domain" 2>/dev/null | head -n1)
-    
+
+#logic to check if result is non-empty and print appropriate message
     if [[ -n "$result" ]]; then
         echo "✓ $domain resolves to $result"
         return 0
@@ -34,28 +40,32 @@ check_dns() {
         return 1
     fi
 }
+
 check_listening_ports() {
     echo "Listening Ports:"
-    
-    # Get listening TCP ports with process info
-    ss -tlnp 2>/dev/null | awk 'NR>1' | while read -r proto recvq sendq local remote state process; do
-        # Extract process name from the process field
-        # Format: users:(("nginx",pid=1234,fd=6))
-        if [[ "$process" =~ \"([^\"]+)\" ]]; then
+
+    ss -tlnp 2>/dev/null | tail -n +2 | while read -r line; do
+        # Extract local address
+        local_addr=$(echo "$line" | awk '{print $4}')
+        
+        # Extract process name (users:(("nginx",pid=1234,fd=6))) safely
+        if [[ "$line" =~ users:\(\(\"([^\"]+)\" ]]; then
             proc_name="${BASH_REMATCH[1]}"
-            printf "  TCP %-20s → %s\n" "$local" "$proc_name"
+            printf "  TCP %-20s → %s\n" "$local_addr" "$proc_name"
         else
-            printf "  TCP %-20s\n" "$local"
+            printf "  TCP %-20s\n" "$local_addr"
         fi
     done
-    
-    echo "  (Note: Run with 'sudo' for complete process details)"
+
 }
+
 # Port availability check
 check_port() {
     local host=$1
     local port=$2
     local service=$3
+
+#check that the host and port are reachable using bash's /dev/tcp feature with a timeout of 2 seconds
     
     timeout 2 bash -c "</dev/tcp/$host/$port" 2>/dev/null
     local exit_code=$?
